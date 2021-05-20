@@ -1,25 +1,30 @@
-PDA: Privacy-preserving Distributed Algorithms
+
+
 ==============================================
 
 
 ## Outline
 
-1. PDA workflow
-2. Package requirements
-3. Instructions for installing and running pda package
-4. FAQ
+1. Description
+2. DLMM workflow
+3. Package requirements
+4. Install package
+5. Run DLMM 
+6. Results
 
+## Description
+DLMM is a distributed algorithm under [PDA](https://github.com/Penncil/pda) (Privacy-preserving Distributed Algorithms) framework. The package in this repo is for the whole PDA framework, including other distributed algorithms. This README will focus on the implementation of DLMM only.
 
-## PDA Workflow
+## DLMM workflow
 ![](Picture1.png)
 
 ## Package Requirements
 - A database with clear and consistent variable names
 - On Windows: download and install [RTools](http://cran.r-project.org/bin/windows/Rtools/) 
-- For ODAC (One-shot distributed algorithm for Cox regression), make sure you have cpp compiler as ODAC requires [Rcpp](https://cran.r-project.org/web/packages/Rcpp/vignettes/Rcpp-FAQ.pdf).
+- For ODAC (One-shot distributed algorithm for Cox regression) in the pda package, make sure you have cpp compiler as ODAC requires [Rcpp](https://cran.r-project.org/web/packages/Rcpp/vignettes/Rcpp-FAQ.pdf).
 
 
-## Instructions for Installing and Running pda Package
+## Install package
 
 Below are the instructions for installing and then running the package.
 
@@ -42,7 +47,7 @@ devtools::install_github("penncil/pda")
 library(pda)
 ```
 
-### How to run pda examples
+## Run DLMM 
 
 Below are two ways to run the pda examples. 
 
