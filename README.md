@@ -13,162 +13,172 @@ DLMM: Lossless One-shot Distributed Linear Mixed Model for a Multisite Internati
 7. How to run DLMM on your data?
 
 ## Description
-DLMM is a distributed algorithm under [PDA](https://github.com/Penncil/pda) (Privacy-preserving Distributed Algorithms) framework. The package in this repo is for the whole PDA framework, including other distributed algorithms. This README will focus on the implementation of DLMM only.
+This README is prepared for journal peer review of the Distributed Linear Mixed Model (DLMM) paper. The proposed DLMM algorithm can be used in multi-center studies and requires each site to communicate only some aggregate data (AD), but achieves lossless estimates (i.e. identical estimates as if we have all the patients-level data).
 
-## DLMM workflow
+To demonstrate its usage and lossless property (as in Section 2 of the paper), we use a simulated data of 1000 patients from 3 sites, and analyze the association of length of stay (LOS) with age, sex and lab test. LMM allows heterogeneous sites as it assumes site-specific random effects (intercepts).  
+
+DLMM is a distributed algorithm under [PDA](https://github.com/Penncil/pda) (Privacy-preserving Distributed Algorithms) framework. The package in this repo is for the whole PDA framework, including other distributed algorithms. 
+
+## DLMM workflow (Figure 2)
 ![](workflow.png)
 
 ## Package Requirements
 - A database with clear and consistent variable names
 - R version: R (>= 3.5.0)
 - On Windows: download and install [RTools](http://cran.r-project.org/bin/windows/Rtools/) 
-- For ODAC (One-shot distributed algorithm for Cox regression) in the pda package, make sure you have cpp compiler as ODAC requires [Rcpp](https://cran.r-project.org/web/packages/Rcpp/vignettes/Rcpp-FAQ.pdf).
-
+- To install the `pda` package, make sure you have cpp compiler as `pda` requires [Rcpp](https://cran.r-project.org/web/packages/Rcpp/vignettes/Rcpp-FAQ.pdf). This is a technical requirement for `pda` and not related to DLMM algorithm.
 
 ## Install package
 
-To implement DLMM algorithms, we need to install the `pda` package. There are several ways in which one could install the `pda` package. 
+To implement DLMM algorithms, we need to install the `pda` package.  
 
 1. In RStudio, create a new project: File -> New Project... -> New Directory -> New Project. 
 
 2. Execute the following R code: 
 
 ```r
-# Install the latest version of PDA in R:
-install.packages("pda")
-library(pda)
-
-# Or you can install via github:
+# Install the latest version via github (recommended):
 install.packages("devtools")
 library(devtools)
 devtools::install_github("penncil/pda")
-library(pda)
+ 
+# Or you can install from CRAN:
+install.packages("pda")
+
 ```
 
-The installation time is about 5 secs via CRAN and 20 secs via github. 
+The installation time is about 20 secs via github and 5 secs via CRAN (normal personal computer). 
 
-In the toy example below we aim to analyze the association of hospitalization length of stay (LOS) with age, sex and lab test using linear model, data(LOS) is simulated and assumed to come from 3 sites: 'site1', 'site2', 'site3'. 
+In the toy example below we aim to analyze the association of hospitalization length of stay (LOS) with age, sex and lab test using linear mixed model, assuming site-specific random intercepts. We demonstrate using PDA DLMM can obtain identical estimation as the pooled analysis. 
 
-We demonstrate using PDA DLMM can obtain identical estimation as the pooled analysis. 
+We run the example in local directory. In actual collaboration, account/password for `pda` server will be assigned to the sites at the server https://pda.one. Each site can access via web browser to check the communication of the summary stats.
 
-We run the example in local directory. In actual collaboration, account/password for pda server will be assigned to the sites at the server https://pda.one. Each site can access via web browser to check the communication of the summary stats.
-
-### *Run DLMM example with demo()*
-
-```r
-demo(DLM)
-``` 
-
+ 
 ### *Run DLMM example with code*
 
 Step 0: load related R packages and prepare sample data
 
 ```r
 ## load packages
-require(lme4)
-require(minqa)
-require(data.table)
 require(pda) 
+require(lme4) 
 
 ## sample data
+?LOS
 data(LOS)  
 
-## create 3 sites, split the data
-sites = c('site1', 'site2', 'site3')
+## split the data to 3 separate sets (patient-level data)
 LOS_split <- split(LOS, LOS$site)
-
-## fit LM using pooled data, assuming fixed site effect
-fit.pool <- lme4::lmer(los~age+sex+lab+(1|site), REML = F, data=LOS)
+ 
 ``` 
 
-Step 1: Initialization
+Step 1: DLMM Initialization
 
 ```r
-# ############################  STEP 1: initialize  ###############################
+## setup pda control
 control <- list(project_name = 'Length of stay study',
-                step = 'estimate',
-                sites = sites,
+                step = 'initialize',
+                sites = c('site1', 'site2', 'site3'),
                 heterogeneity = TRUE,
                 heterogeneity_effect = 'random',
                 model = 'DLM',
                 family = 'gaussian',
                 outcome = "los",
-                variables = c('age', 'sex', 'lab'),
-                # variables_heterogeneity = c('Intercept'),
+                variables = c('age', 'sex', 'lab'), 
                 optim_maxit = 100,
                 lead_site = 'site1',
                 upload_date = as.character(Sys.time()) )
 
-## run the example in local directory:
-## specify your working directory, default is the tempdir
-mydir <- getwd()  # tempdir()
+ 
+## specify your working directory, default is the current working dir
+mydir <- getwd()   
 pda(site_id = 'site1', control = control, dir = mydir)
+# you now can see control.json in the working dir
 
 
-## in actual collaboration, account/password for pda server will be assigned, thus:
+## DO NOT RUN: in actual collaboration, account/password for pda server will be assigned, thus:
 # pda(site_id = 'site1', control = control, uri = 'https://pda.one', secret='abc123')
 ## you can also set your environment variables, and no need to specify them in pda:
 # Sys.setenv(PDA_USER = 'site1', PDA_SECRET = 'abc123', PDA_URI = 'https://pda.one')
 # pda(site_id = 'site1', control = control)
 
 
-## assume remote site3: enter "1" to allow tranferring your local estimate 
+## site3 communicate its AD: after review, enter "1" to allow tranferring AD 
 pda(site_id = 'site3', ipdata = LOS_split[[3]], dir=mydir)
+# you now can see site3_initialize.json in the working dir
 
-
-## assume remote site2: enter "1" to allow tranferring your local estimate  
+## site2 communicate its AD: after review, enter "1" to allow tranferring AD   
 pda(site_id = 'site2', ipdata = LOS_split[[2]], dir=mydir)
+# you now can see site2_initialize.json in the working dir
 
-
-## assume lead site1: enter "1" to allow tranferring your local estimate  
-## control.json is also automatically updated
+## site1 communicate its AD: after review, enter "1" to allow tranferring AD   
 pda(site_id = 'site1', ipdata = LOS_split[[1]], dir=mydir)
- 
+# you now can see site3_initialize.json in the working dir
+# all the AD are ready, control.json is also automatically updated to the next step
+
 ``` 
 
-Step 2: Final results
-```r 
-# ############################  STEP 2: final results  ###############################
+DLMM STEP 2: estimation using AD
 
+```r  
+pda(site_id = 'site1', ipdata = LOS_split[[1]], dir=mydir)
+# you now can see site1_estimate.json in the working dir
+
+## get the estimated results
 config <- getCloudConfig(site_id = 'site1', dir=mydir)
-fit.dlm <- pdaGet(name = 'site1_estimate', config = config)
+fit.dlmm <- pdaGet(name = 'site1_estimate', config = config)
+```
 
-## Compare with pooled analysis
-# fixed effects
-cbind(b.pool = summary(fit.pool)$coef[,1],
-      b.dlm = c(fit.dlm$bhat),      
-      sd.pool = summary(fit.pool)$coef[,2],  
-      sd.dlm = fit.dlm$sebhat)  
 
-# var component
-cbind(data.frame(summary(fit.pool)$varcor)$vcov, 
-      c(fit.dlm$Vhat, fit.dlm$sigmahat^2) )
+Compare with pooled analysis:
 
-# random effects (BLUP)
-cbind(u.pool = ranef(fit.pool)$site,
-      u.dlm = c(fit.dlm$uhat))
+```r 
+## fit LMM using pooled data, assuming random intercepts for each site
+fit.pool <- lme4::lmer(los~age+sex+lab+(1|site), REML = F, data=LOS)
+
+# fixed effects (intercept, age, sex, lab) and their sd 
+cbind(b.pool = round(summary(fit.pool)$coef[,1], 4),
+      b.dlmm = c(fit.dlmm$bhat),      
+      sd.pool = round(summary(fit.pool)$coef[,2], 4),  
+      sd.dlmm = fit.dlmm$sebhat)  
+
+# variance components (var of random intercepts, and random error)
+cbind(vc.pool=round(data.frame(summary(fit.pool)$varcor)$vcov, 4),
+      vc.dlmm=round(c(fit.dlmm$Vhat, fit.dlmm$sigmahat^2),4) )
+
+# random intercepts (BLUP) of each sites
+cbind(u.pool = round(ranef(fit.pool)$site, 4),
+      u.dlmm = c(fit.dlmm$uhat))
+
 ```
 
 
 ## Results and Running time
 
-Fixed effect:
+Fixed effect (identical to 2 digits):
 
-|             | b.pool     | b.dlm   | sd.pool     | sd.dlm |
-|-------------|------------|---------|-------------|--------|
-| (Intercept) | 8.1427882  | 8.1431  | 0.492562341 | 0.4928 |
-| ageold      | 0.9216823  | 0.9217  | 0.284036488 | 0.2848 |
-| ageyoung    | -0.9825288 | -0.9825 | 0.347824193 | 0.3487 |
-| sexM        | 0.4532778  | 0.4532  | 0.254514252 | 0.2552 |
-| lab         | 0.1019632  | 0.1020  | 0.004262868 | 0.0043 |
+|             | b.pool  | b.dlmm  | sd.pool | sd.dlmm|
+|-------------|---------|---------|---------|--------|
+| (Intercept) | 8.1428  | 8.1431  | 0.4926  | 0.4928 |
+| ageold      | 0.9217  | 0.9217  | 0.2840  | 0.2848 |
+| ageyoung    | -0.9825 | -0.9825 | 0.3478  | 0.3487 |
+| sexM        | 0.4533  | 0.4532  | 0.2545  | 0.2552 |
+| lab         | 0.1020  | 0.1020  | 0.0043  | 0.0043 |
 
-Random effect (BLUP):
+Variance components (identical to 2 digits):
 
-|        | (Intercept) | u.dlm   |
+|  vc.pool    | vc.dlmm |
+|-------------|---------|
+| 0.4764      | 0.4758  |
+| 16.1371     | 16.2183 |
+
+Random effect (BLUP) (identical to 2 digits):
+
+|        | (Intercept) | u.dlmm  |
 |--------|-------------|---------|
-| site1  | -0.03998285 | -0.0403 |
-| site2  | 0.80703882  | 0.8063  |
-| site3  | -0.76705598 | -0.7661 |
+| site1  | -0.0400     | -0.0403 |
+| site2  | 0.8070      | 0.8063  |
+| site3  | -0.7671     | -0.7661 |
 
 
 The running time in each site in this demo is about 4-5 secs. 
@@ -178,4 +188,4 @@ The running time in each site in this demo is about 4-5 secs.
 
 * Get the data ready, which requires no missing values and clear variable names.
 * Define the `control` by specifying the model, data, outcome, variables, site names, and local site.
-* Directly run `pda` function.
+* Directly run `pda` function as illustrated above.
