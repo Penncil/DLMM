@@ -20,6 +20,7 @@ DLMM is a distributed algorithm under [PDA](https://github.com/Penncil/pda) (Pri
 
 ## Package Requirements
 - A database with clear and consistent variable names
+- R version: R (>= 3.5.0)
 - On Windows: download and install [RTools](http://cran.r-project.org/bin/windows/Rtools/) 
 - For ODAC (One-shot distributed algorithm for Cox regression) in the pda package, make sure you have cpp compiler as ODAC requires [Rcpp](https://cran.r-project.org/web/packages/Rcpp/vignettes/Rcpp-FAQ.pdf).
 
