@@ -1,22 +1,22 @@
 
-
+DLMM: Lossless One-shot Distributed Linear Mixed Model for a Multisite International Study of COVID-19 Hospitalization Length of Stay
 ==============================================
 
 
 ## Outline
-
 1. Description
 2. DLMM workflow
 3. Package requirements
 4. Install package
 5. Run DLMM 
 6. Results
+7. Conclusion
 
 ## Description
 DLMM is a distributed algorithm under [PDA](https://github.com/Penncil/pda) (Privacy-preserving Distributed Algorithms) framework. The package in this repo is for the whole PDA framework, including other distributed algorithms. This README will focus on the implementation of DLMM only.
 
 ## DLMM workflow
-![](Picture1.png)
+![](workflow.png)
 
 ## Package Requirements
 - A database with clear and consistent variable names
